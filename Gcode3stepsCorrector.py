@@ -5,7 +5,40 @@ Created on 23 mars 2021
 '''
 import numpy as np 
 import matplotlib.pyplot as plt
-import GeoSyn as G 
+
+def circle2D(center,radius):
+    
+    h,k = center
+    r = float(radius)
+    
+    return h,k,r
+
+
+def intersection_circle_circle2D(c1, c2):
+    
+    a,b,r0 = c1
+    c,d,r1 = c2
+    
+    D = ((a-c)**2.+(b-d)**2.)**(1/2.)
+    
+    line = line2D((a,b), (c,d))
+    
+    if D <= r0+r1:
+        
+        A = 1/4.*((D+r0+r1)*(D+r0-r1)*(D-r0+r1)*(-D+r0+r1))**(1/2.)
+        
+        x1 = (a+c)/2.+((c-a)*(r0**2.-r1**2.))/(2.*D**2.) + 2.*(b-d)/D**2.*A
+        x2 = (a+c)/2.+((c-a)*(r0**2.-r1**2.))/(2.*D**2.) - 2.*(b-d)/D**2.*A
+        
+        y1 = (b+d)/2.+((d-b)*(r0**2.-r1**2.))/(2.*D**2.) - 2.*(a-c)/D**2.*A
+        y2 = (b+d)/2.+((d-b)*(r0**2.-r1**2.))/(2.*D**2.) + 2.*(a-c)/D**2.*A
+        
+        return (x1,y1),(x2,y2)
+        
+    
+    else:
+        
+        return None
 
 """step1"""
         
@@ -755,19 +788,19 @@ def STEP2_linearize_G2G3(fn_in, fn_out, min_arc_len, decimal_places):
 def reconstitution_polygon_no_negativeXY(A,AB,AC,AD,BC,BD):
     
     D = A[0], A[1]+AD
-    circleAB = G.circle2D(A, AB)
-    circleDB = G.circle2D(D, BD)
+    circleAB = circle2D(A, AB)
+    circleDB = circle2D(D, BD)
     
-    B1, B2 = G.intersection_circle_circle2D(circleAB, circleDB)
+    B1, B2 = intersection_circle_circle2D(circleAB, circleDB)
     if B1[0] <=0 or B1[1 <=0]:
         B = B2 
     else:
         B = B1
     
-    circleBC = G.circle2D(B, BC)
-    circleAC = G.circle2D(A, AC)
+    circleBC = circle2D(B, BC)
+    circleAC = circle2D(A, AC)
     
-    C1, C2 = G.intersection_circle_circle2D(circleBC, circleAC)
+    C1, C2 = intersection_circle_circle2D(circleBC, circleAC)
     if C1[0] <=0 or C1[1 <=0]:
         C = C2 
     else:
