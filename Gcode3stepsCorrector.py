@@ -123,7 +123,7 @@ def STEP1_split_GG_lines(fn_in, fn_out):
             print line
         
         elif len(pattern) >= 2:
-            if pattern[0:2] == "GG":
+            if pattern[0:2] == "GG" and words[0] != "G28":
                 
                 word1, new_line = GG_line(line)
                 
@@ -727,48 +727,56 @@ def STEP2_linearize_G2G3(fn_in, fn_out, min_arc_len, decimal_places):
         
         if linetype == "words":
             
-            previousXYZ = np.copy(currentXYZ)
-            currentXYZ = gcode_current_XYZ(currentXYZ, current_mode, line)
-            current_mode = gcode_current_mode(current_mode, line)
-            current_plane = gcode_current_plane(current_plane, current_mode)
-            
-            print "plane", current_plane
-            print "prevXYZ", previousXYZ
-            print "currXYZ", currentXYZ
-            
-            if current_mode == "G3":
-                
-                """linearize G3"""
-                print ""
-                print "linearize G3"
-                new_lines = linearization_G3toG1(line, previousXYZ, currentXYZ, current_plane, min_arc_len, decimal_places)
-                
-                print "new lines G1", new_lines 
-                
-                for j in xrange(len(new_lines)):
-                    
-                    f.write(new_lines[j])
-                
-            
-            elif current_mode == "G2":
-                 
-                """linearize G2"""
-                print ""
-                print "linearize G2"
-                new_lines = linearization_G2toG1(line, previousXYZ, currentXYZ, current_plane, min_arc_len, decimal_places)
-                 
-                print "new lines G1", new_lines 
-                 
-                for j in xrange(len(new_lines)):
-                     
-                    f.write(new_lines[j])
-            
-            else:
-                
+            if line[0] == "S":
                 """write line"""
+                print "words[0] == 'S'"
                 print "line to write"
                 print line 
-                f.write(str(line)+"\n")
+                f.write(str(line)+"\n")    
+                
+            else:
+                previousXYZ = np.copy(currentXYZ)
+                currentXYZ = gcode_current_XYZ(currentXYZ, current_mode, line)
+                current_mode = gcode_current_mode(current_mode, line)
+                current_plane = gcode_current_plane(current_plane, current_mode)
+                
+                print "plane", current_plane
+                print "prevXYZ", previousXYZ
+                print "currXYZ", currentXYZ
+                
+                if current_mode == "G3":
+                    
+                    """linearize G3"""
+                    print ""
+                    print "linearize G3"
+                    new_lines = linearization_G3toG1(line, previousXYZ, currentXYZ, current_plane, min_arc_len, decimal_places)
+                    
+                    print "new lines G1", new_lines 
+                    
+                    for j in xrange(len(new_lines)):
+                        
+                        f.write(new_lines[j])
+                    
+                
+                elif current_mode == "G2":
+                     
+                    """linearize G2"""
+                    print ""
+                    print "linearize G2"
+                    new_lines = linearization_G2toG1(line, previousXYZ, currentXYZ, current_plane, min_arc_len, decimal_places)
+                     
+                    print "new lines G1", new_lines 
+                     
+                    for j in xrange(len(new_lines)):
+                         
+                        f.write(new_lines[j])
+                
+                else:
+                    
+                    """write line"""
+                    print "line to write"
+                    print line 
+                    f.write(str(line)+"\n")
         
         else:
                 
@@ -882,6 +890,9 @@ def STEP3_correct_linearized_gcode(fn_in, fn_out, real, scale):
             print "current mode", current_mode, len(current_mode)
             
             X, Y, Z = previousXYZ
+            Xtrue = False
+            Ytrue = False 
+            Ztrue = False
             F = False
             line_header = False
             
@@ -909,6 +920,7 @@ def STEP3_correct_linearized_gcode(fn_in, fn_out, real, scale):
                             for j in xrange(len(word)-1):
                                 value += str(word[j+1])
                             X = float(value)
+                            Xtrue = True
                             
                         elif word[0] == "Y":
                             
@@ -916,6 +928,7 @@ def STEP3_correct_linearized_gcode(fn_in, fn_out, real, scale):
                             for j in xrange(len(word)-1):
                                 value += str(word[j+1])
                             Y = float(value)
+                            Ytrue = True
                         
                         elif word[0] == "Z":
                             
@@ -929,6 +942,7 @@ def STEP3_correct_linearized_gcode(fn_in, fn_out, real, scale):
                             
                             print "value", value
                             Z = float(value)
+                            Ztrue = True
                             
                         elif word[0] == "F":
                             value = ""
@@ -948,6 +962,7 @@ def STEP3_correct_linearized_gcode(fn_in, fn_out, real, scale):
                         for j in xrange(len(words)-1):
                             value += str(words[j+1])
                         X = float(value)
+                        Xtrue = True
                         
                     elif words[0] == "Y":
                         
@@ -955,6 +970,7 @@ def STEP3_correct_linearized_gcode(fn_in, fn_out, real, scale):
                         for j in xrange(len(words)-1):
                             value += str(words[j+1])
                         Y = float(value)
+                        Ytrue = True
                     
                     elif words[0] == "Z":
 
@@ -962,6 +978,7 @@ def STEP3_correct_linearized_gcode(fn_in, fn_out, real, scale):
                         for j in xrange(len(words)-1):
                             value += str(words[j+1])
                         Z = float(value)
+                        Ztrue = True
                         
                     elif words[0] == "F":
                         value = ""
@@ -981,8 +998,12 @@ def STEP3_correct_linearized_gcode(fn_in, fn_out, real, scale):
                 
                 if line_header != False:
                     new_line += line_header+" "
-                
-                new_line += "X"+str(X)+" Y"+str(Y)+" Z"+str(Z)
+                if Xtrue == True:
+                    new_line += "X"+str(X)+" "
+                if Ytrue == True:
+                    new_line += "Y"+str(Y)+" "
+                if Ztrue == True:
+                    new_line += "Z"+str(Z)+" "
                 
                 if F != False:
                     new_line += " F"+str(F)
@@ -1008,8 +1029,22 @@ def STEP3_correct_linearized_gcode(fn_in, fn_out, real, scale):
     
     return None      
 
-"""enter real measurements"""
-scale = 60.
+"""enter real measurements here
+d__________________c
+|                  |
+|                  |
+|                  |
+|                  |
+|                  |
+a__________________b
+
+a & d sould be aligned with the machine's Y axis
+
+"""
+
+
+"""
+scale = 600.
 
 A = 0,0
 AB = scale
@@ -1022,33 +1057,35 @@ theory = A,AB,AC,AD,BC,BD
 
 #real
 a = 0,0
-ab = 61.1
-bc = 59.5
-ad = 59.9
-ac = 60.*2.**.5
-bd = 61.*2.**.5
+ab = 599.5
+bc = 600.5
+ad = 601
+ac = 851
+bd = 846.5
 
 
 real = a,ab,ac,ad,bc,bd
 
-""" """
 
 
+"""put your filename here"""
     
-fn_in = "multitest.nc"
-fn_out = fn_in+"step1.nc"
+fn_in = "LMNO step2 3.175rond 2levres.nc"
+fn_out = fn_in+"A"
 
-#STEP1_split_GG_lines(fn_in, fn_out)
+STEP1_split_GG_lines(fn_in, fn_out)
 
 fn_in = fn_out 
-fn_out = fn_out+"step2.nc"
+fn_out = fn_out+"B"
 
 min_arc_len = 0.2
 decimal_places = 3
 
-#STEP2_linearize_G2G3(fn_in, fn_out, min_arc_len, decimal_places)
+STEP2_linearize_G2G3(fn_in, fn_out, min_arc_len, decimal_places)
 
 fn_in = fn_out 
-fn_out = fn_out+"step3.nc"
+fn_out = fn_out+"C.nc"
 
 STEP3_correct_linearized_gcode(fn_in, fn_out, real, scale)
+
+
